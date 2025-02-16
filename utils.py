@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Dict, List, Any
+from typing import Dict
 from functools import wraps
 
 # Configure logging
@@ -23,7 +23,7 @@ def validate_text(text: str, min_length: int = 1, max_length: int = 1000) -> boo
 
 def validate_url(url: str) -> bool:
     """Basic URL validation"""
-    return url.startswith(('http://', 'https://', '@', 't.me/'))
+    return url.startswith(('http://', 'https://', '@'))
 
 def validate_price(price: str) -> bool:
     """Validate price format"""
@@ -47,6 +47,24 @@ class DataValidator:
     def university(data: Dict[str, str]) -> bool:
         # expect keys: name, instagram
         required = ["name", "instagram"]
+        for key in required:
+            if key not in data or not validate_text(data[key], min_length=2):
+                return False
+        return True
+    
+    @staticmethod
+    def practice(data: Dict[str, str]) -> bool:
+        # expect keys: name, content, author
+        required = ["name", "content"]
+        for key in required:
+            if key not in data or not validate_text(data[key], min_length=2):
+                return False
+        return True
+
+    @staticmethod
+    def contact(data: Dict[str, str]) -> bool:
+        # expect keys: phone
+        required = ["phone"]
         for key in required:
             if key not in data or not validate_text(data[key], min_length=2):
                 return False

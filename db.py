@@ -1,7 +1,7 @@
 import requests, os
 from dotenv import load_dotenv
-from typing import Dict, List, Any, Optional
-from utils import logger, ValidationError
+from typing import Dict, List, Any
+from utils import logger
 
 load_dotenv()
 
@@ -35,53 +35,219 @@ def update_db(data: Dict[str, Any]) -> Dict[str, Any]:
     response.raise_for_status()
     return response.json()
 
-def get_bot_info(category: str) -> str:
-    """Get formatted info for a category"""
-    try:
-        data = fetch_db()
-        bot_info = data.get("bot_info", [])
-        entries = [entry["info"] for entry in bot_info if entry["category"] == category]
-        logger.info(f"Fetched {category} info: {entries}")
-        if not entries:
-            return "Нет данных."
-        if category in ['university_info', 'find_psychologist']:
-            formatted_entries = []
-            for entry in entries:
-                if category == "find_psychologist":
-                    parts = entry.split("\n")
-                    if parts:
-                        # Capitalize and bold the name (first line) then add remaining lines indented
-                        name = parts[0].strip().upper()
-                        formatted = f"• *{name}*"
-                        if len(parts) > 1:
-                            rest = "\n  ".join(parts[1:])
-                            formatted += f"\n  {rest}"
-                        formatted_entries.append(formatted)
-                    else:
-                        formatted_entries.append(entry)
-                else:
-                    formatted_entries.append(f"• {entry}")
-            return "\n".join(formatted_entries)
-        else:
-            return "\n".join(entries)
-    except Exception as e:
-        logger.error(f"Error fetching {category} info: {str(e)}")
-        return "Временно недоступно. Попробуйте позже."
+def escape_markdown(text: str) -> str:
+    """
+    Escape special characters for Telegram MarkdownV2 format.
+    
+    Args:
+        text (str): Text to escape
+        
+    Returns:
+        str: Escaped text safe for MarkdownV2
+        
+    Examples:
+        >>> escape_markdown("Hello! Cost: $5.99")
+        'Hello\\! Cost: \\$5\\.99'
+        >>> escape_markdown("*bold* _italic_")
+        '\\*bold\\* \\_italic\\_'
+    """
+    if not isinstance(text, str):
+        return str(text)  # Convert non-strings to strings
+        
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', 
+                    '-', '=', '|', '{', '}', '.', '!', '$']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
 
-def add_bot_info(category: str, info: str) -> Dict[str, Any]:
-    """Add new bot info entry"""
+def get_bot_info() -> str:
+    return {
+        "practices": get_practices(),
+        "find_psychologist": get_psychologists(),
+        "university_info": get_universities(),
+        "contacts": get_contacts()
+    }
+            
+def get_practices() -> str:
+    """Get formatted practices info"""
+    try:
+        data = fetch_db()
+        practices = data.get("bot_info", [])
+        if not practices:
+            return escape_markdown("Нет практик.")
+        return format_list_entries(practices, "practices")
+    except Exception as e:
+        logger.error(f"Error fetching practices: {str(e)}")
+        return escape_markdown("Временно недоступно. Попробуйте позже.")
+ 
+def get_psychologists() -> str:
+    """Get formatted psychologists info"""
+    try:
+        data = fetch_db()
+        psychologists = data.get("bot_info", [])
+        if not psychologists:
+            return escape_markdown("Нет психологов.")
+        return format_list_entries(psychologists, "psychologists")
+    except Exception as e:
+        logger.error(f"Error fetching psychologists: {str(e)}")
+        return escape_markdown("Временно недоступно. Попробуйте позже.")
+
+def get_universities() -> str:
+    """Get formatted universities info"""
+    try:
+        data = fetch_db()
+        universities = data.get("bot_info", [])
+        if not universities:
+            return escape_markdown("Нет университетов.")
+        return format_list_entries(universities, "university_info")
+    except Exception as e:
+        logger.error(f"Error fetching universities: {str(e)}")
+        return escape_markdown("Временно недоступно. Попробуйте позже.")
+
+def get_contacts() -> str:
+    """Get formatted contacts info"""
+    try:
+        data = fetch_db()
+        contacts = data.get("bot_info", [])
+        if not contacts:
+            return escape_markdown("Нет контактов.")
+        return format_list_entries(contacts, "contacts")
+    except Exception as e:
+        logger.error(f"Error fetching contacts: {str(e)}")
+        return escape_markdown("Временно недоступно. Попробуйте позже.")
+
+def format_list_entries(entries: list, category: str) -> str:
+    """Format list entries with proper numbering and line breaks"""
+    formatted_entries = []
+    
+    for idx, entry in enumerate(entries, 1):
+        formatted = ""  # Initialize formatted string
+        
+        if isinstance(entry, dict):
+            if category == 'psychologists':
+                # Format structured psychologist data
+                name = entry.get('name', '')
+                specialty = entry.get('specialty', '')
+                instagram = entry.get('instagram')
+                contacts = entry.get('contacts')
+                price = entry.get('price')
+                
+                formatted = f"{idx}\\. *{escape_markdown(name)}*"
+                if specialty:
+                    formatted += f"\r\nСпециализация: {escape_markdown(specialty)}"
+                if instagram:
+                    formatted += f"\r\nInstagram: {escape_markdown(instagram)}"
+                if contacts:
+                    phone = contacts.get('phone', '')
+                    if phone:
+                        formatted += f"\r\nТелефон: {escape_markdown(phone)}"
+                if price:
+                    formatted += f"\r\nСтоимость: {escape_markdown(str(price))} тг\\."
+                else:
+                    formatted += f"\r\nСтоимость: Цена не указана"
+                    
+            elif category == 'practices':
+                # Format structured practice data
+                name = entry.get('name', '')
+                content = entry.get('content', '')
+                author = entry.get('author')
+                
+                formatted = f"{idx}\\. *{escape_markdown(name)}*"
+                if content:
+                    formatted += f"\r\n{escape_markdown(content)}"
+                if author:
+                    formatted += f"\r\n\r\n_Автор: {escape_markdown(author)}_"
+                    
+            elif category == 'university_info':
+                # Format structured university data
+                name = entry.get('name', '')
+                instagram = entry.get('instagram', '')
+                
+                formatted = f"{idx}\\. {escape_markdown(name)}"
+                if instagram:
+                    formatted += f"\r\nInstagram: {escape_markdown(instagram)}"
+                    
+            elif category == 'contacts':
+                # Format structured contact data
+                phone = entry.get('phone', '')
+                formatted = f"{idx}\\. {escape_markdown(phone)}"
+                
+        else:  # Handle legacy string format
+            formatted = f"{idx}\\. {escape_markdown(str(entry))}"
+            
+        formatted_entries.append(formatted)
+    
+    return "\n\n".join(formatted_entries)
+
+def add_bot_info(category: str, info: dict) -> Dict[str, Any]:
+    """
+    Add new bot info entry with validation.
+    
+    Args:
+        category (str): Category for the new entry
+        info (dict): Information to store
+        
+    Returns:
+        Dict[str, Any]: New entry data
+        
+    Raises:
+        DatabaseError: If database operation fails
+        ValueError: If input validation fails
+    """
+    if not category or not info:
+        raise ValueError("Category and info must not be empty")
+        
     try:
         data = fetch_db()
         bot_info = data.get("bot_info", [])
-        new_id = max([entry["id"] for entry in bot_info], default=0) + 1
-        new_entry = {"id": new_id, "category": category, "info": info}
+        
+        # Generate new ID safely
+        new_id = max([entry.get("id", 0) for entry in bot_info], default=0) + 1
+        
+        new_entry = {
+            "id": new_id,
+            "category": category,
+            "info": info
+        }
+        
         bot_info.append(new_entry)
         data["bot_info"] = bot_info
         update_db(data)
+        
+        logger.info(f"Added new {category} entry with ID {new_id}")
         return new_entry
+        
     except Exception as e:
         logger.error(f"Error adding bot info: {str(e)}")
         raise DatabaseError(f"Failed to add bot info: {str(e)}")
+    
+def add_psychologist(name: str, specialty: str, instagram: str, contacts: dict, price: int) -> Dict[str, Any]:
+    return add_bot_info("psychologists", {
+        "name": name,
+        "specialty": specialty,
+        "instagram": instagram,
+        "contacts": contacts,
+        "price": price
+    })
+
+def add_practice(name: str, content: str, author: str) -> Dict[str, Any]:
+    return add_bot_info("practices", {
+        "name": name,
+        "content": content,
+        "author": author
+    })
+    
+def add_university(name: str, instagram: str) -> Dict[str, Any]:
+    return add_bot_info("university_info", {
+        "name": name,
+        "instagram": instagram
+    })
+    
+def add_contact(phone: str) -> Dict[str, Any]:
+    return add_bot_info("contacts", {
+        "phone": phone
+    })
+
 
 def delete_bot_info(category: str, info: str) -> bool:
     """Delete bot info entry"""
@@ -90,6 +256,20 @@ def delete_bot_info(category: str, info: str) -> bool:
         bot_info = data.get("bot_info", [])
         initial_length = len(bot_info)
         bot_info = [entry for entry in bot_info if not (entry["category"] == category and entry["info"] == info)]
+        data["bot_info"] = bot_info
+        update_db(data)
+        return len(bot_info) != initial_length
+    except Exception as e:
+        logger.error(f"Error deleting bot info: {str(e)}")
+        raise DatabaseError(f"Failed to delete bot info: {str(e)}")
+    
+def delete_by_id(category: str, id: int) -> bool:
+    """Delete bot info entry by ID"""
+    try:
+        data = fetch_db()
+        bot_info = data.get("bot_info", [])
+        initial_length = len(bot_info)
+        bot_info = [entry for entry in bot_info if not (entry["category"] == category and entry["id"] == id)]
         data["bot_info"] = bot_info
         update_db(data)
         return len(bot_info) != initial_length
@@ -129,16 +309,3 @@ def get_admin_ids() -> List[int]:
         logger.error(f"Error fetching admin IDs: {str(e)}")
         return []
 
-def add_admin(chat_id: int) -> List[int]:
-    """Add new admin chat ID"""
-    try:
-        data = fetch_db()
-        admin_ids = data.get("admin_ids", [])
-        if str(chat_id) not in admin_ids:
-            admin_ids.append(str(chat_id))
-            data["admin_ids"] = admin_ids
-            update_db(data)
-        return admin_ids
-    except Exception as e:
-        logger.error(f"Error adding admin: {str(e)}")
-        raise DatabaseError(f"Failed to add admin: {str(e)}")
