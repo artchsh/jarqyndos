@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Jarqyn Bot Admin</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --danger-color: #e25c5c;
+            --bg-light: #f5f5f5;
+            --border-color: #ddd;
+        }
+        
+        body { 
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .category { 
+            margin-bottom: 30px; 
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .item {
+            margin: 10px 0;
+            padding: 15px;
+            background: var(--bg-light);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .item-content {
+            white-space: pre-wrap; /* Preserve formatting */
+            flex: 1;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary-color);
+            color: white;
+            transition: opacity 0.2s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        .add-form {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+        
+        .admin-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .delete-btn {
+            background: var(--danger-color);
+        }
+        
+        input, textarea {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: calc(100% - 20px);
+        }
+        
+        .step-form {
+            display: none;
+        }
+        
+        .step-form.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jarqyn Bot Админ-панель</h1>
+    
+    <div id="content"></div>
+
+    <script>
+        const API_URL = 'https://api.npoint.io/378ec0bec3ce743fbf62';
+        
+        const CATEGORY_CONFIG = {
+            psychologist: {
+                title: 'Психологи',
+                fields: [
+                    { name: 'name', label: 'Имя и фамилия' },
+                    { name: 'specialty', label: 'Специализация' },
+                    { name: 'instagram', label: 'Instagram' },
+                    { name: 'price', label: 'Стоимость сессии', type: 'number' }
+                ],
+                formatData: (data) => {
+                    const price = data.price > 0 ? `${data.price} тг.` : 'Цена не указана';
+                    return `${data.name}\nСпециализация: ${data.specialty}\nInstagram: ${data.instagram}\nСтоимость: ${price}`;
+                }
+            },
+            university: {
+                title: 'Университеты',
+                fields: [
+                    { name: 'name', label: 'Название университета' },
+                    { name: 'instagram', label: 'Instagram студ. организации' }
+                ],
+                formatData: (data) => `${data.name}\n${data.instagram}`
+            },
+            practices: {
+                title: 'Практики',
+                fields: [{ name: 'info', label: 'Описание практики', type: 'textarea' }]
+            },
+            contacts: {
+                title: 'Контакты',
+                fields: [{ name: 'info', label: 'Контактная информация', type: 'textarea' }]
+            }
+        };
+
+        async function loadData() {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            displayData(data);
+        }
+
+        async function saveData(data) {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            loadData();
+        }
+
+        function displayData(data) {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+
+            // Admin IDs section
+            const adminSection = document.createElement('div');
+            adminSection.className = 'admin-section';
+            adminSection.innerHTML = `
+                <h2>Администраторы</h2>
+                <p>ID администраторов (разделяйте запятыми):</p>
+                <input type="text" id="adminIds" value="${data.admin_ids || ''}" style="width: 300px">
+                <button onclick="saveAdminIds()">Сохранить</button>
+            `;
+            content.appendChild(adminSection);
+
+            // Categories
+            Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+                const div = document.createElement('div');
+                div.className = 'category';
+                div.innerHTML = `
+                    <h2>${config.title}</h2>
+                    <div id="${category}-items"></div>
+                `;
+                content.appendChild(div);
+
+                const items = data.bot_info?.filter(item => item.category === category) || [];
+                const itemsDiv = document.getElementById(`${category}-items`);
+                items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'item';
+                    itemDiv.innerHTML = `
+                        <div class="item-content">${item.info}</div>
+                        <button class="delete-btn" onclick="deleteItem('${category}', '${item.id}')">Удалить</button>
+                    `;
+                    itemsDiv.appendChild(itemDiv);
+                });
+
+                const addForm = createAddForm(category, config);
+                div.appendChild(addForm);
+            });
+        }
+
+        async function saveAdminIds() {
+            const data = await (await fetch(API_URL)).json();
+            data.admin_ids = document.getElementById('adminIds').value
+                .split(',')
+                .map(id => id.trim())
+                .filter(id => id);
+            await saveData(data);
+        }
+
+        function createAddForm(category, config) {
+            const form = document.createElement('div');
+            form.className = 'add-form';
+            
+            const fields = config.fields.map((field, index) => `
+                <div class="step-form ${index === 0 ? 'active' : ''}" data-step="${index}">
+                    <label>${field.label}:</label>
+                    ${field.type === 'textarea' 
+                        ? `<textarea id="${category}-${field.name}"></textarea>`
+                        : `<input type="${field.type || 'text'}" id="${category}-${field.name}">`
+                    }
+                    ${index < config.fields.length - 1 
+                        ? '<button onclick="nextStep(this)">Далее</button>'
+                        : `<button onclick="submitForm('${category}')">Добавить</button>`
+                    }
+                </div>
+            `).join('');
+            
+            form.innerHTML = fields;
+            return form;
+        }
+
+        function nextStep(button) {
+            const currentStep = button.closest('.step-form');
+            const nextStep = currentStep.nextElementSibling;
+            currentStep.classList.remove('active');
+            nextStep.classList.add('active');
+        }
+
+        async function submitForm(category) {
+            const config = CATEGORY_CONFIG[category];
+            const formData = {};
+            
+            for (const field of config.fields) {
+                const value = document.getElementById(`${category}-${field.name}`).value.trim();
+                if (!value) {
+                    alert(`Пожалуйста, заполните поле "${field.label}"`);
+                    return;
+                }
+                formData[field.name] = value;
+            }
+
+            const data = await (await fetch(API_URL)).json();
+            if (!data.bot_info) data.bot_info = [];
+            
+            const maxId = data.bot_info.length > 0 
+                ? Math.max(...data.bot_info.map(item => item.id || 0)) 
+                : 0;
+            
+            data.bot_info.push({
+                id: maxId + 1,
+                category: category,
+                info: config.formatData ? config.formatData(formData) : formData.info
+            });
+
+            await saveData(data);
+            
+            // Reset form
+            config.fields.forEach(field => {
+                document.getElementById(`${category}-${field.name}`).value = '';
+            });
+            
+            // Reset to first step
+            const forms = document.querySelectorAll('.step-form');
+            forms.forEach((form, index) => {
+                form.classList.toggle('active', index === 0);
+            });
+        }
+
+        async function deleteItem(category, id) {
+            if (!confirm('Вы уверены?')) return;
+            
+            const data = await (await fetch(API_URL)).json();
+            data.bot_info = data.bot_info.filter(item => item.id != id);
+            await saveData(data);
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
