@@ -89,14 +89,6 @@ def update_db(data: Data) -> Data:
     except Exception as e:
         logger.error(f"Error updating database: {str(e)}")
         raise DatabaseError(f"Failed to update database: {str(e)}")
-
-def get_bot_info() -> BotInfo:
-    return {
-        "practices": get_practices(),
-        "find_psychologist": get_psychologists(),
-        "university_info": get_universities(),
-        "contacts": get_contacts()
-    }
             
 def get_practices():
     """Get formatted practices info"""

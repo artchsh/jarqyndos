@@ -7,11 +7,10 @@ from telegram.constants import ParseMode
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
-# Define common inline keyboards
 start_menu = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Узнать о JARQYN", callback_data='university_info')],
     [InlineKeyboardButton(text="Найти психолога", callback_data='find_psychologist')],
     [InlineKeyboardButton(text="Практики", callback_data='practices')],
-    [InlineKeyboardButton(text="Jarqyn в твоем университете", callback_data='university_info')],
     [InlineKeyboardButton(text="Контакты", callback_data='contacts')],
     [InlineKeyboardButton(text="Сообщить об ошибке", callback_data='report_issue')]
 ])
@@ -30,10 +29,9 @@ def format_price(price: int) -> str:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.add_user(update.effective_chat.id)
     text = (
-        f"{'Привет, меня зовут Dos!'}\n"
-        f"{'Я друг проекта психологической поддержки Jarqyn.'}\n"
-        f"{'Я помогу справиться с тревогой, стрессом, выгоранием.'}\n"
-        f"{'Выберите действие:'}"
+        "Привет, я - DOS\n"
+        "Друг проекта JARQYN\n"
+        "Выбери действие:"
     )
     await update.message.reply_text(text, reply_markup=start_menu)
 
@@ -154,10 +152,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == 'back_to_menu':
         text = (
-            "Привет, меня зовут Dos!\n"
-            "Я друг проекта психологической поддержки Jarqyn.\n"
-            "Я помогу справиться с тревогой, стрессом, выгоранием.\n"
-            "Выберите действие:"
+            "Привет, я - DOS\n"
+            "Друг проекта JARQYN\n"
+            "Выбери действие:"
         )
         await query.edit_message_text(text=text, reply_markup=start_menu)
 
