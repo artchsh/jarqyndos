@@ -1,5 +1,4 @@
-import requests, os
-import logging
+import requests, os, logging, time
 from dotenv import load_dotenv
 from typing import List
 from typing import TypedDict, Optional
@@ -24,9 +23,18 @@ class Psychologist(TypedDict):
     contacts: Contacts
     price: int
 
+class UniversityEvent(TypedDict):
+    title: str
+    date: str
+    description: str
+    link: str
+    
 class University(TypedDict):
+    id: str
     name: str
+    events: List[UniversityEvent]
     instagram: str
+    
     
 class BotInfo(TypedDict):
     practices: List[Practice]
@@ -51,12 +59,23 @@ class DatabaseError(Exception):
     """Custom exception for database operations"""
     pass
 
+_cache_ttl = 60  # cache duration in seconds
+_db_cache: Optional[Data] = None
+_db_cache_timestamp: float = 0.0
+
 def fetch_db() -> Data:
-    """Fetch database content"""
+    """Fetch database content with caching"""
+    global _db_cache, _db_cache_timestamp
+    current_time = time.time()
+    if _db_cache is not None and (current_time - _db_cache_timestamp) < _cache_ttl:
+        return _db_cache
     try:
         response = requests.get(API_URL)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        _db_cache = data
+        _db_cache_timestamp = current_time
+        return data
     except Exception as e:
         logger.error(f"Error fetching database: {str(e)}")
         raise DatabaseError(f"Failed to fetch database: {str(e)}")
@@ -105,8 +124,20 @@ def get_contacts():
     """Get formatted contacts info"""
     data = fetch_db()
     bot_info = data.get("bot_info", [])
-    contacts: List[Contacts] | List[None] = bot_info.get("contacts", [])
+    contacts: List[Contacts] | list = bot_info.get("contacts", [])
     return contacts
+
+def get_events(university_id: str):
+    """Get formatted university events info"""
+    universities = get_universities()
+    university_info = next((u for u in universities if u["id"] == university_id), None)
+    events: List[UniversityEvent] | list = university_info.get("events", []) if university_info else []
+    return events
+
+def get_admin_ids() -> List[int]:
+    """Get admin chat IDs"""
+    data = fetch_db()
+    return data.get("admin_ids", [])
 
 def add_user(chat_id: int) -> List[int]:
     """Add new user chat ID"""

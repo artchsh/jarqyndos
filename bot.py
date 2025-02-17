@@ -20,6 +20,13 @@ back_button = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Назад", callback_data="back_to_menu")]
 ])
 
+def format_price(price: int) -> str:
+    if price == 0:
+        return "Уточнить"
+    str_price = "{:,}".format(price).replace(",", " ")
+    str_price = str_price + "₸"
+    return str_price
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.add_user(update.effective_chat.id)
     text = (
@@ -43,18 +50,54 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
             await query.edit_message_text(text="Нет информации о университетах.", reply_markup=markup)
             return
-        response = ""
+        
+        buttons = []
         for university in universities:
+            title = university.get("name", "")
+            buttons.append([InlineKeyboardButton(title, callback_data=f"show_university_events_{university.get('id')}")])
+        buttons.append([InlineKeyboardButton("Назад", callback_data="back_to_menu")])
+        markup = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await query.edit_message_text(text="Выберите университет:", reply_markup=markup)
+        
+        
+        
+    elif data.startswith('show_university_events_'):
+        try:
+            university_id = int(data.split('_')[-1])
+        except ValueError:
+            await query.edit_message_text(text="Неверный идентификатор практики.")
+            return
+        universities = db.get_universities()
+        university = next(
+            (u for u in universities if u.get("id") == university_id),
+            None
+        )
+        if university:
+            response = ""
             instagram_link = university['instagram']
             if instagram_link.startswith('@'):
                 instagram_link = instagram_link[1:]
-            instagram_link = f"https://instagram.com/{instagram_link}"
+                instagram_link = f"https://instagram.com/{instagram_link}"
+            else:
+                instagram_link = f"https://instagram.com/{instagram_link}"
             response += f"<strong>{university['name']}</strong>\r\n"
-            response += f"<a href='{instagram_link}'>{university['instagram']}</a>\n\n"
-        markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton("Назад", callback_data="back_to_menu")]
-        ])
-        await query.edit_message_text(text=response, reply_markup=markup, parse_mode=ParseMode.HTML)
+            response += f"<a href='{instagram_link}'>Ссылка на страницу студенческой организации</a>\n\n"
+            markup = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton("Назад", callback_data="university_info")]
+            ])
+            
+            # add events to message 
+            events = db.get_events(university_id)
+            if events:
+                response += "События:\n"
+                for event in events:
+                    response += f"<strong>{event.get('title')}</strong>\n"
+                    response += f"Дата проведения: {event.get('date')}\n"
+                    response += f"Описание: {event.get('description')}\n"
+                    response += f"<a href='{event.get('link')}'>Узнать подробнее об инвенте</a>\n\n"
+            await query.edit_message_text(text=response, reply_markup=markup, parse_mode=ParseMode.HTML)
+        else:
+            await query.edit_message_text(text="Университет не найден.")
         
     elif data == 'find_psychologist':
         psychologists = db.get_psychologists()
@@ -76,7 +119,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 psychologist["price"] = "Уточнить"
             response += f"<strong>{psychologist.get("name", "")}</strong>\r\n"
             response += f"Специализация: {psychologist.get("specialty", "")}\r\n"
-            response += f"Цена: {psychologist.get("price")}\r\n"
+            response += f"Цена: {format_price(psychologist.get("price"))} \r\n"
             response += f"Телефон: <a href='tel:{psychologist['contacts']['phone']}'>{psychologist['contacts']['phone']}</a>\r\n"
             response += f"<a href='{instagram_link}'>Instagram</a>\n\n"
         markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -164,6 +207,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Handle user issue reports
+    admin_ids = db.get_admin_ids()
+    if not admin_ids:
+        await update.message.reply_text("Произошла ошибка при отправке сообщения.")
+        return
+    for admin_id in admin_ids:
+        message = f"Ошибка от пользователя {update.effective_chat.id}:\n{update.message.text}"
+        await context.bot.send_message(admin_id, message)
+        
     await update.message.reply_text("Спасибо! Мы рассмотрим вашу проблему.")
 
 def main():
