@@ -1,7 +1,7 @@
 import requests, os
 import logging
 from dotenv import load_dotenv
-from typing import Dict, List, Any
+from typing import List
 from typing import TypedDict, Optional
 
 logger = logging.getLogger(__name__)

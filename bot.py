@@ -1,13 +1,11 @@
-import os
-import db
+import db, os
 from dotenv import load_dotenv
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.constants import ParseMode
 
 load_dotenv()
-# TOKEN = os.getenv("TOKEN")
-TOKEN = "7905668193:AAGZ4fhX66ATHtdQ5ogk4ChBbfc86rDGBUs"
+TOKEN = os.getenv("TOKEN")
 
 # Define common inline keyboards
 start_menu = InlineKeyboardMarkup(inline_keyboard=[
@@ -23,7 +21,6 @@ back_button = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Register user in JSON database
     db.add_user(update.effective_chat.id)
     text = (
         f"{'Привет, меня зовут Dos!'}\n"
@@ -150,12 +147,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             None
         )
         if practice:
-            content = practice.get("content", "")
-            content += "\n" + practice.get("author", "")
+            name = practice.get("name", "")
+            name = f"<strong>{name}</strong>\n"
+            content = name + practice.get("content", "")
+            if practice.get("author"):
+                content += f"\n\nАвтор: {practice.get('author')}"
             markup = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton("Назад", callback_data="practices")]
             ])
-            await query.edit_message_text(text=content, reply_markup=markup)
+            await query.edit_message_text(text=content, reply_markup=markup, parse_mode=ParseMode.HTML)
         else:
             await query.edit_message_text(text="Практика не найдена.")
 
