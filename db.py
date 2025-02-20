@@ -28,13 +28,18 @@ class UniversityEvent(TypedDict):
     date: str
     description: str
     link: str
+
+class CustomLink(TypedDict):
+    title: str
+    url: str
     
 class University(TypedDict):
     id: str
     name: str
+    description: str
     events: List[UniversityEvent]
     instagram: str
-    
+    link: CustomLink
     
 class BotInfo(TypedDict):
     practices: List[Practice]

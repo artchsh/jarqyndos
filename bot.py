@@ -55,7 +55,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             buttons.append([InlineKeyboardButton(title, callback_data=f"show_university_events_{university.get('id')}")])
         buttons.append([InlineKeyboardButton("Назад", callback_data="back_to_menu")])
         markup = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await query.edit_message_text(text="Выберите университет:", reply_markup=markup)
+        await query.edit_message_text(text="Выберите о чем вы хотите узнать:", reply_markup=markup)
         
         
         
@@ -79,7 +79,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 instagram_link = f"https://instagram.com/{instagram_link}"
             response += f"<strong>{university['name']}</strong>\r\n"
-            response += f"<a href='{instagram_link}'>Ссылка на страницу студенческой организации</a>\n\n"
+            response += f"{university['description']}\r\n"
+            
+            if university["link"]["url"] and university["link"]["title"]: # if we have both url and title
+                response += f"<a href='{university['link']['url']}'>{university['link']['title']}</a>\n\n"
+            elif university["link"]["title"] and not university["link"]["url"]: # if we have title
+                response += f"<a href='{instagram_link}'>{university["link"]['title']}</a>\n\n"
+            elif university["link"]["url"] and not university["link"]["title"]: # if we have url
+                response += f"<a href='{university['link']['url']}'>Ссылка на сайт</a>\n\n"
+            response += f"<a href='{instagram_link}'>Ссылка на Instagram</a>\n\n"
             markup = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton("Назад", callback_data="university_info")]
             ])
