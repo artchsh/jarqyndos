@@ -1,8 +1,19 @@
-import db, os
+import db, os, logging, sys
 from dotenv import load_dotenv
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.constants import ParseMode
+from classes import Data, Contact, Event, Psychologist, Practice, University
+
+# Update logging configuration to log into bot.log and console
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
@@ -93,7 +104,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
             
             # add events to message 
-            events = db.get_events(university_id)
+            events = db.get_university_events(university_id)
             if events:
                 response += "События:\n"
                 for event in events:
@@ -167,7 +178,26 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text=text, reply_markup=start_menu)
 
     elif data == 'practices':
-        practices_data = db.get_practices()
+        categories = db.get_practice_categories()
+        if not categories:
+            markup = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton("Назад", callback_data="back_to_menu")]
+            ])
+            await query.edit_message_text(text="Нет доступных практик.", reply_markup=markup)
+            return
+
+        buttons = []
+        for category in categories:
+            title = category
+            buttons.append([InlineKeyboardButton(title, callback_data=f"show_category_{categories.index(category)}")])
+        buttons.append([InlineKeyboardButton("Назад", callback_data="back_to_menu")])
+        markup = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await query.edit_message_text(text="Выберите категорию практик:", reply_markup=markup)
+
+    elif data.startswith("show_category_"):
+        category_index = int(data.split('_')[-1])
+        categories = db.get_practice_categories()
+        practices_data = db.get_practices_by_category(categories[category_index])
         if not practices_data:
             markup = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton("Назад", callback_data="back_to_menu")]
@@ -176,13 +206,35 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         buttons = []
-        for practice in practices_data:
+        row = []
+        response = ""
+        for index, practice in enumerate(practices_data, start=1):
             title = practice.get("name", "")
-            buttons.append([InlineKeyboardButton(title, callback_data=f"show_practice_{practice.get('id')}")])
-        buttons.append([InlineKeyboardButton("Назад", callback_data="back_to_menu")])
-        markup = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await query.edit_message_text(text="Выберите практику:", reply_markup=markup)
+            description = practice.get('description', '')
+            response += f"{index}. <strong>{title}</strong>\n"
+            response += f"{(description  + '\n') if description else ''}"
 
+            # Create button
+            button = InlineKeyboardButton(str(index), callback_data=f"show_practice_{practice.get('id')}")
+            row.append(button)
+
+            # Add row every 2 buttons
+            if len(row) == 2:
+                buttons.append(row)
+                row = []
+
+        # Append the last row if it has only one button
+        if row:
+            buttons.append(row)
+
+        # Add the "Назад" button as a separate row
+        buttons.append([InlineKeyboardButton("Назад", callback_data="practices")])
+
+        markup = InlineKeyboardMarkup(buttons)
+
+        response += "\nВыберите практику:"
+        await query.edit_message_text(text=response, reply_markup=markup, parse_mode=ParseMode.HTML)
+            
     elif data.startswith('show_practice_'):
         try:
             practice_id = int(data.split('_')[-1])
@@ -190,6 +242,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text="Неверный идентификатор практики.")
             return
         practices_data = db.get_practices()
+        categories = db.get_practice_categories()
         practice = next(
             (p for p in practices_data if p.get("id") == practice_id),
             None
@@ -201,7 +254,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if practice.get("author"):
                 content += f"\n\nАвтор: {practice.get('author')}"
             markup = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton("Назад", callback_data="practices")]
+                [InlineKeyboardButton("Назад", callback_data=f"show_category_{categories.index(practice.get('category'))}")]
             ])
             await query.edit_message_text(text=content, reply_markup=markup, parse_mode=ParseMode.HTML)
         else:
@@ -222,16 +275,63 @@ async def receive_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     await update.message.reply_text("Спасибо! Мы рассмотрим вашу проблему.")
 
+# Global variable to store last known practice IDs
+last_practice_ids = set()
+
+async def check_new_practices_job(context: ContextTypes.DEFAULT_TYPE):
+    global last_practice_ids
+    try:
+        practices = db.get_practices()
+        current_ids = {practice.get("id") for practice in practices if practice.get("id") is not None}
+        logging.info(f"Fetched {len(current_ids)} practices.")
+        if not last_practice_ids:
+            last_practice_ids = current_ids
+            logging.info("Initialized practice IDs without announcement.")
+            return
+        new_ids = current_ids - last_practice_ids
+        if new_ids:
+            new_practices = [practice for practice in practices if practice.get("id") in new_ids]
+            logging.info(f"Detected {len(new_practices)} new practices: {new_ids}")
+            message = "Новые практики:\n\n"
+            buttons = []
+            row = []
+            for idx, practice in enumerate(new_practices, start=1):
+                message += f"{idx}. <strong>{practice.get('name')}</strong>\n"
+                message += f"{practice.get('description', '')}\n\n"
+                button = InlineKeyboardButton(str(idx), callback_data=f"show_practice_{practice.get('id')}")
+                row.append(button)
+                if len(row) == 2:
+                    buttons.append(row)
+                    row = []
+            if row:
+                buttons.append(row)
+            markup = InlineKeyboardMarkup(inline_keyboard=buttons)
+            # Retrieve all user chat IDs
+            user_ids = db.get_users()
+            for user in user_ids:
+                try:
+                    await context.bot.send_message(chat_id=user, text=message, reply_markup=markup, parse_mode=ParseMode.HTML)
+                    logging.info(f"Sent new practice announcement to user {user}.")
+                except Exception as e:
+                    logging.error(f"Error sending announcement to user {user}: {str(e)}")
+        else:
+            logging.info("No new practices found.")
+        last_practice_ids = current_ids
+    except Exception as e:
+        logging.error(f"Error in check_new_practices_job: {str(e)}")
+
 def main():
     application = Application.builder().token(TOKEN).build()
-
     # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receive_issue))
-
+    # Schedule periodic job for new practices check every 1 minute (60 seconds)
+    application.job_queue.run_repeating(check_new_practices_job, interval=60, first=0)
+    logging.info("Bot started and job scheduled.")
     # Start the bot (this will run until interrupted)
     application.run_polling(poll_interval=2)
+    
 
 if __name__ == '__main__':
     main()

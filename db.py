@@ -1,60 +1,9 @@
 import requests, os, logging, time
 from dotenv import load_dotenv
-from typing import List
-from typing import TypedDict, Optional
+from typing import Optional, List
+from classes import Data, Contact, Event, Psychologist, Practice, University
 
 logger = logging.getLogger(__name__)
-
-class Practice(TypedDict):
-    id: str
-    name: str
-    content: str
-    author: Optional[str]
-
-class Contacts(TypedDict):
-    name: Optional[str]
-    phone: str
-    email: str
-    
-class Psychologist(TypedDict):
-    name: str
-    specialty: str
-    instagram: str
-    contacts: Contacts
-    price: int
-
-class UniversityEvent(TypedDict):
-    title: str
-    date: str
-    description: str
-    link: str
-
-class CustomLink(TypedDict):
-    title: str
-    url: str
-    
-class University(TypedDict):
-    id: str
-    name: str
-    description: str
-    events: List[UniversityEvent]
-    instagram: str
-    link: CustomLink
-    
-class BotInfo(TypedDict):
-    practices: List[Practice]
-    psychologists: List[Psychologist]
-    universities: List[University]
-    contacts: List[Contacts]
-
-class Users(List[int]):
-    pass
-
-class Data(TypedDict):
-    bot_info: BotInfo
-    users: Users
-    admin_ids: Users
-
 
 load_dotenv()
 
@@ -95,40 +44,62 @@ def update_db(data: Data) -> Data:
         logger.error(f"Error updating database: {str(e)}")
         raise DatabaseError(f"Failed to update database: {str(e)}")
             
-def get_practices():
+def get_practices() -> List[Practice]:
     """Get formatted practices info"""
     data = fetch_db()
     bot_info = data.get("bot_info", [])
-    practices: List[Practice] | list = bot_info.get("practices", [])
+    practices = bot_info.get("practices", [])
     return practices
 
+def get_practice_categories() -> List[str]:
+    practices = get_practices()
+    categories = []
+    for practice in practices:
+        if not practice["category"] in categories:
+            categories.append(practice["category"])
+    return categories
+
+def get_practices_by_category(category_name: str) -> List[Practice]:
+    practices = get_practices()
+    filtered_practices = []
+    for practice in practices:
+        if practice["category"] == category_name:
+            filtered_practices.append(practice)
+            
+    return filtered_practices
  
-def get_psychologists():
+def get_psychologists() -> List[Psychologist]:
     """Get formatted psychologists info"""
     data = fetch_db()
     bot_info = data.get("bot_info", [])
-    psychologists: List[Psychologist] | list = bot_info.get("psychologists", [])
+    psychologists = bot_info.get("psychologists", [])
     return psychologists 
 
-def get_universities():
+def get_universities() -> List[University]:
     """Get formatted universities info"""
     data = fetch_db()
     bot_info = data.get("bot_info", [])
-    universities: List[University] | list= bot_info.get("universities", [])
+    universities = bot_info.get("universities", [])
     return universities
 
-def get_contacts():
+def get_contacts() -> List[Contact]:
     """Get formatted contacts info"""
     data = fetch_db()
     bot_info = data.get("bot_info", [])
-    contacts: List[Contacts] | list = bot_info.get("contacts", [])
+    contacts = bot_info.get("contacts", [])
     return contacts
 
-def get_events(university_id: str):
-    """Get formatted university events info"""
-    universities = get_universities()
-    university_info = next((u for u in universities if u["id"] == university_id), None)
-    events: List[UniversityEvent] | list = university_info.get("events", []) if university_info else []
+def get_events() -> List[Event]:
+    """Get formatted events info"""
+    data = fetch_db()
+    bot_info = data.get("bot_info", [])
+    events = bot_info.get("events", [])
+    return events
+
+def get_university_events(university_id: str) -> List[Event]:
+    """Get events for a specific university"""
+    events = get_events()
+    events = [event for event in events if event.get("universityId") == university_id]
     return events
 
 def get_admin_ids() -> List[int]:
@@ -145,3 +116,8 @@ def add_user(chat_id: int) -> List[int]:
         data["users"] = users
         update_db(data)
     return users
+
+def get_users() -> List[int]:
+    """Get list of user chat IDs"""
+    data = fetch_db()
+    return data.get("users", [])
