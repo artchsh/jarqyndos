@@ -31,11 +31,14 @@ back_button = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Назад", callback_data="back_to_menu")]
 ])
 
-def format_price(price: int) -> str:
-    if price == 0:
+def format_price(price) -> str:
+    try:
+        num = int(price)
+    except (ValueError, TypeError):
         return "Уточнить"
-    str_price = "{:,}".format(price).replace(",", " ")
-    str_price = str_price + "₸"
+    if num == 0:
+        return "Уточнить"
+    str_price = "{:,}".format(num).replace(",", " ") + "₸"
     return str_price
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
