@@ -1,5 +1,4 @@
-import db, os, logging, sys
-from dotenv import load_dotenv
+import db, os, logging, sys, json
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.constants import ParseMode
@@ -14,8 +13,11 @@ logging.basicConfig(
     ]
 )
 
-load_dotenv()
-TOKEN = os.getenv("TOKEN")
+# from env.json import TOKEN
+with open("env.json", "r") as f:
+    env = json.load(f)
+
+TOKEN = env["TOKEN"]
 
 start_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Узнать о JARQYN", callback_data='university_info')],

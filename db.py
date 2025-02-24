@@ -1,13 +1,15 @@
 import requests, os, logging, time
-from dotenv import load_dotenv
 from typing import Optional, List
 from classes import Data, Contact, Event, Psychologist, Practice, University
+import json
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# from env.json import NPOINT_URL
+with open("env.json", "r") as f:
+    env = json.load(f)
 
-API_URL = str(os.getenv("NPOINT_URL"))
+API_URL = env["NPOINT_URL"]
 
 class DatabaseError(Exception):
     """Custom exception for database operations"""

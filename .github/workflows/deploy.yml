@@ -33,7 +33,7 @@ jobs:
           cd /root/jarqyndos
 
           # Update .env file
-          printf "BOT_TOKEN=%s\nNPOINT_URL=%s\n" "${{ secrets.BOT_TOKEN }}" "${{ secrets.NPOINT_URL }}" > .env
+          printf '{\n    "TOKEN": "%s",\n    "NPOINT_URL": "%s"\n}\n' "${{ secrets.BOT_TOKEN }}" "${{ secrets.NPOINT_URL }}" > env.json
 
 
           # Create files for manually stopping and starting containers
