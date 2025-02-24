@@ -24,7 +24,15 @@ jobs:
       - name: Deploy on Droplet
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << 'EOF'
-          mkdir -p /root/jarqyndos && cd /root/jarqyndos
+
+          # if it's a new machine clone the repository
+          if [ ! -d "/root/jarqyndos" ]; then
+            # Remove everything in the folder
+            rm -rf *
+            git clone https://github.com/artchsh/jarqyndos.git /root/jarqyndos
+          fi
+
+          cd /root/jarqyndos
 
           # Update .env file
           echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
@@ -36,13 +44,6 @@ jobs:
 
           # Make the scripts executable
           chmod +x stop.sh start.sh
-
-          # if it's a new machine clone the repository
-          if [ ! -d ".git" ]; then
-            # Remove everything in the folder
-            rm -rf *
-            git clone https://github.com/artchsh/jarqyndos.git .
-          fi
 
           # Pull the latest changes from GitHub
           git pull origin main
