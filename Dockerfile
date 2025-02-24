@@ -21,8 +21,6 @@ ADD . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-RUN cd /app && touch bot.log && chmod 666 bot.log && cd ..
-
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
