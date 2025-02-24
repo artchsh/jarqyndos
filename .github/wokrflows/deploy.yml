@@ -1,0 +1,48 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main  # Change to your default branch if different
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up SSH access to your DigitalOcean droplet
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Connect to the droplet and deploy
+      - name: Deploy on Droplet
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << 'EOF'
+          cd /root/jarqyndos
+
+          # Update .env file
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
+          echo "NPOINT_URL=${{ secrets.NPOINT_URL }}" >> .env
+
+          # Create files for manually stopping and starting containers
+          echo "docker-compose down" > stop.sh
+          echo "docker-compose up --build -d" > start.sh
+
+          # Pull the latest changes from GitHub
+          git pull origin main
+
+          # Stop and remove old containers (except database)
+          docker-compose down
+
+          # Rebuild and start the new version
+          docker-compose up --build -d
+
+          # Clean up unused Docker images
+          docker system prune -f
+          EOF
