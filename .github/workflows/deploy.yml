@@ -24,7 +24,7 @@ jobs:
       - name: Deploy on Droplet
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << 'EOF'
-          cd /root/jarqyndos
+          mkdir -p /root/jarqyndos && cd /root/jarqyndos
 
           # Update .env file
           echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
@@ -33,6 +33,13 @@ jobs:
           # Create files for manually stopping and starting containers
           echo "docker-compose down" > stop.sh
           echo "docker-compose up --build -d" > start.sh
+
+          git clone https://github.com/artchsh/jarqyndos.git .
+
+          if [ ! -d ".git" ]; then
+            echo "Error: .git directory not found. Deployment aborted."
+            exit 1
+          fi
 
           # Pull the latest changes from GitHub
           git pull origin main
