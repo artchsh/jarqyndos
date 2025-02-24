@@ -27,8 +27,6 @@ jobs:
 
           # if it's a new machine clone the repository
           if [ ! -d "/root/jarqyndos" ]; then
-            # Remove everything in the folder
-            rm -rf *
             git clone https://github.com/artchsh/jarqyndos.git /root/jarqyndos
           fi
 
