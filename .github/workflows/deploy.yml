@@ -33,8 +33,8 @@ jobs:
           cd /root/jarqyndos
 
           # Update .env file
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
-          echo "NPOINT_URL=${{ secrets.NPOINT_URL }}" >> .env
+          printf "BOT_TOKEN=%s\nNPOINT_URL=%s\n" "${{ secrets.BOT_TOKEN }}" "${{ secrets.NPOINT_URL }}" > .env
+
 
           # Create files for manually stopping and starting containers
           echo "docker-compose down" > stop.sh
