@@ -34,11 +34,14 @@ jobs:
           echo "docker-compose down" > stop.sh
           echo "docker-compose up --build -d" > start.sh
 
-          git clone https://github.com/artchsh/jarqyndos.git .
+          # Make the scripts executable
+          chmod +x stop.sh start.sh
 
+          # if it's a new machine clone the repository
           if [ ! -d ".git" ]; then
-            echo "Error: .git directory not found. Deployment aborted."
-            exit 1
+            # Remove everything in the folder
+            rm -rf *
+            git clone https://github.com/artchsh/jarqyndos.git .
           fi
 
           # Pull the latest changes from GitHub
