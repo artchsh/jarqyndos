@@ -50,7 +50,7 @@ def get_start_text() -> str:
     """Get formatted start text"""
     data = fetch_db()
     bot_info = data.get("bot_info", [])
-    start_text = bot_info.get("start_text", "")
+    start_text = bot_info.get("start_text", "").replace("\\n", "\n")
     # If no start text is found in the database, use a default message
     if not start_text:
         start_text = "Привет, я - DOS 🤖\nДруг проекта JARQYN\n"
