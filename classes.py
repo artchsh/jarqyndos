@@ -47,9 +47,10 @@ class Event(TypedDict):
     date: str
     description: str
     link: str
-
+    
 @dataclass
 class BotInfo(TypedDict):
+    start_text: str
     contacts: List[Contact]
     practices: List[Practice]
     universities: List[University]

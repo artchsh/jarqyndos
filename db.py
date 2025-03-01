@@ -45,6 +45,18 @@ def update_db(data: Data) -> Data:
     except Exception as e:
         logger.error(f"Error updating database: {str(e)}")
         raise DatabaseError(f"Failed to update database: {str(e)}")
+    
+def get_start_text() -> str:
+    """Get formatted start text"""
+    data = fetch_db()
+    bot_info = data.get("bot_info", [])
+    start_text = bot_info.get("start_text", "")
+    # If no start text is found in the database, use a default message
+    if not start_text:
+        start_text = "Привет, я - DOS 🤖\nДруг проекта JARQYN\n"
+    
+    text = start_text + "\nВыбери действие из меню ниже:"
+    return text
             
 def get_practices() -> List[Practice]:
     """Get formatted practices info"""

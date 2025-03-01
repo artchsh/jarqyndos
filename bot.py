@@ -49,11 +49,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Store an empty navigation stack in user_data
     context.user_data['nav_stack'] = []
     
-    text = (
-        "Привет, я - DOS 🤖\n"
-        "Друг проекта JARQYN\n"
-        "Выбери действие из меню ниже:"
-    )
+    # Get the start text from the database
+    text = db.get_start_text()
+        
     await update.message.reply_text(text, reply_markup=start_menu)
     return MAIN_MENU
 
@@ -94,11 +92,8 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not nav_stack:
         # If stack is empty, go to main menu
-        text = (
-            "Привет, я - DOS 🤖\n"
-            "Друг проекта JARQYN\n"
-            "Выбери действие из меню ниже:"
-        )
+        text = db.get_start_text()
+    
         await update.message.reply_text(text, reply_markup=start_menu)
         return MAIN_MENU
     
@@ -236,7 +231,7 @@ async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response += f"📞 Телефон: <a href='tel:{contact.get('phone', '')}'>{contact.get('phone', '')}</a>\r\n"
         response += f"📧 Email: <a href='mailto:{contact.get('email', '')}'>{contact.get('email', '')}</a>\n\n"
     
-    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML)
     return CONTACTS_MENU
 
 async def handle_practices(update: Update, context: ContextTypes.DEFAULT_TYPE):
