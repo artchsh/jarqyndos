@@ -236,7 +236,7 @@ async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response += f"📞 Телефон: <a href='tel:{contact.get('phone', '')}'>{contact.get('phone', '')}</a>\r\n"
         response += f"📧 Email: <a href='mailto:{contact.get('email', '')}'>{contact.get('email', '')}</a>\n\n"
     
-    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     return CONTACTS_MENU
 
 async def handle_practices(update: Update, context: ContextTypes.DEFAULT_TYPE):
