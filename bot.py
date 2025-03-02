@@ -209,14 +209,14 @@ async def handle_find_psychologist(update: Update, context: ContextTypes.DEFAULT
         instagram_link = f"https://instagram.com/{instagram_link}"
         
         if psychologist.get("price", 0) == 0:
-            psychologist["price"] = "Уточнить"
+            psychologist["price"] = "Требует уточнения"
         response += f"<strong>{psychologist.get('name', '')} 👨‍⚕️</strong>\r\n"
         response += f"🧠 Специализация: {psychologist.get('specialty', '')}\r\n"
-        response += f"💰 Цена: {format_price(psychologist.get('price'))} \r\n"
+        response += f"💰 Стоимость консультации: {format_price(psychologist.get('price'))} \r\n"
         response += f"📞 Телефон: <a href='tel:{psychologist['contacts']['phone']}'>{psychologist['contacts']['phone']}</a>\r\n"
         response += f"<a href='{instagram_link}'>Instagram 📱</a>\n\n"
     
-    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML, link_preview_options={"is_disabled": True})
     return FIND_PSYCHOLOGIST
 
 async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -231,7 +231,7 @@ async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response += f"📞 Телефон: <a href='tel:{contact.get('phone', '')}'>{contact.get('phone', '')}</a>\r\n"
         response += f"📧 Email: <a href='mailto:{contact.get('email', '')}'>{contact.get('email', '')}</a>\n\n"
     
-    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(response, reply_markup=back_button, parse_mode=ParseMode.HTML, link_preview_options={"is_disabled": True})
     return CONTACTS_MENU
 
 async def handle_practices(update: Update, context: ContextTypes.DEFAULT_TYPE):
