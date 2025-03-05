@@ -135,3 +135,19 @@ def get_users() -> List[int]:
     """Get list of user chat IDs"""
     data = fetch_db()
     return data.get("users", [])
+
+import logging
+
+logger = logging.getLogger("JarqynBot.DB")
+
+def check_connection():
+    """Check if the database connection is working properly.
+    Returns True if connection is ok, False otherwise."""
+    try:
+        fetch_db()
+        
+        logger.info("Database connection check successful")
+        return True
+    except Exception as e:
+        logger.error(f"Database connection check failed: {str(e)}", exc_info=True)
+        return False
