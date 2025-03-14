@@ -6,7 +6,7 @@ from telegram.constants import ParseMode
 from telegram.error import TimedOut, NetworkError, RetryAfter, BadRequest
 
 from logger import logger
-from config import MAIN_MENU, REPORT_ISSUE, last_practice_ids, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU,PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE
+from config import last_practice_ids, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU,PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE
 from language import textjson
 
 
@@ -88,6 +88,18 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle going back to the previous state"""
     try:
         logger.info(f"User {update.effective_chat.id} requested to go back")
+        
+        # NEW: Delete practice audio message if it exists
+        if "practice_audio_message_id" in context.user_data:
+            try:
+                await context.bot.delete_message(
+                    chat_id=update.effective_chat.id,
+                    message_id=context.user_data["practice_audio_message_id"]
+                )
+            except Exception:
+                pass  # Ignore deletion errors
+            context.user_data.pop("practice_audio_message_id", None)
+        
         nav_stack = context.user_data.get('nav_stack', [])
         logger.debug(f"Navigation stack: {nav_stack}")
         
