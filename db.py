@@ -1,7 +1,9 @@
-import requests, os, logging, time
+import requests
+import logging
+import time
+import json
 from typing import Optional, List
 from classes import Data, Contact, Event, Psychologist, Practice, University
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +71,7 @@ def get_practice_categories() -> List[str]:
     practices = get_practices()
     categories = []
     for practice in practices:
-        if not practice["category"] in categories:
+        if practice["category"] not in categories:
             categories.append(practice["category"])
     return categories
 
@@ -135,8 +137,6 @@ def get_users() -> List[int]:
     """Get list of user chat IDs"""
     data = fetch_db()
     return data.get("users", [])
-
-import logging
 
 logger = logging.getLogger("JarqynBot.DB")
 

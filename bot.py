@@ -6,10 +6,9 @@ from config import TOKEN, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTIC
 # Import command handlers from modules
 from commands.system import start, main_menu_handler, fallback_handler, error_handler, check_new_practices_job, heartbeat_job
 from commands.system import go_back, return_to_main_menu, report_issue_handler
-from commands.universities import university_menu_handler, handle_university_info
-from commands.practices import practices_menu_handler, practice_detail_handler, button_handler, handle_practices
+from commands.universities import university_menu_handler
+from commands.practices import practices_menu_handler, practice_detail_handler, button_handler
 from commands.psychologists import handle_find_psychologist
-from commands.contacts import handle_contacts
 
 def main():
     # Create the application with better polling parameters

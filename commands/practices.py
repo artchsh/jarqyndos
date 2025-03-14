@@ -28,6 +28,7 @@ async def handle_practices(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return PRACTICES_MENU
         
         keyboard = []
+        logger.info(f"Categories: {categories}")
         for category in categories:
             keyboard.append([category + textjson.practices.category_suffix])
         keyboard.append([textjson.common.back_button])
@@ -146,8 +147,14 @@ async def show_practice_detail(update: Update, context: ContextTypes.DEFAULT_TYP
         content = name + practice.get("content", "")
         if practice.get("author"):
             content += f"\n\n{textjson.practices.author.format(author=practice.get('author'))}"
-        
+            
         await update.message.reply_text(content, reply_markup=back_button, parse_mode=ParseMode.HTML)
+        
+        # NEW: if practice has an audio url, send the audio and store its message id
+        if practice.get("audio") and practice["audio"].get("url"):
+            audio_message = await update.message.reply_audio(audio=practice["audio"]["url"])
+            context.user_data["practice_audio_message_id"] = audio_message.message_id
+
         return PRACTICE_DETAIL
     except Exception as e:
         logger.error(f"Error showing practice detail: {str(e)}", exc_info=True)
@@ -192,12 +199,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 await query.edit_message_text(text=content, parse_mode=ParseMode.HTML)
                 
+                # NEW: if practice has an audio url, send the audio and store its message id
+                if practice.get("audio") and practice["audio"].get("url"):
+                    audio_message = await context.bot.send_audio(
+                        chat_id=update.effective_chat.id,
+                        audio=practice["audio"]["url"]
+                    )
+                    context.user_data["practice_audio_message_id"] = audio_message.message_id
+
                 # Send a new message with back button
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text=textjson.common.navigation_hint,
-                    reply_markup=back_button
-                )
+                # await context.bot.send_message(
+                #     chat_id=update.effective_chat.id,
+                #     text=textjson.common.navigation_hint,
+                #     reply_markup=back_button
+                # )
                 return PRACTICE_DETAIL
             else:
                 logger.warning(f"Practice not found with ID: {practice_id}")
