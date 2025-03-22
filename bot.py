@@ -1,7 +1,7 @@
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ConversationHandler
 
 from logger import logger
-from config import TOKEN, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU, PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE
+from config import TOKEN, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU, PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE, PARTNERS_MENU
 
 # Import command handlers from modules
 from commands.system import start, main_menu_handler, fallback_handler, error_handler, check_new_practices_job, heartbeat_job
@@ -9,6 +9,7 @@ from commands.system import go_back, return_to_main_menu, report_issue_handler
 from commands.universities import university_menu_handler
 from commands.practices import practices_menu_handler, practice_detail_handler, button_handler
 from commands.psychologists import handle_find_psychologist
+from commands.partners import handle_partners
 
 def main():
     # Create the application with better polling parameters
@@ -58,6 +59,11 @@ def main():
                 MessageHandler(filters.Regex("^Вернуться в главное меню 🏠$"), return_to_main_menu),
                 MessageHandler(filters.Regex("^Назад ↩️$"), go_back),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, report_issue_handler)
+            ],
+            PARTNERS_MENU: [
+                MessageHandler(filters.Regex("^Вернуться в главное меню 🏠$"), return_to_main_menu),
+                MessageHandler(filters.Regex("^Назад ↩️$"), go_back),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_partners)
             ],
         },
         fallbacks=[CommandHandler("start", start), MessageHandler(filters.ALL, fallback_handler)],

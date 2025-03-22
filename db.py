@@ -67,6 +67,14 @@ def get_practices() -> List[Practice]:
     practices = bot_info.get("practices", [])
     return practices
 
+# Add function to get partners
+def get_partners() -> List[dict]:
+    """Get formatted partners info"""
+    data = fetch_db()
+    bot_info = data.get("bot_info", {})
+    partners = bot_info.get("partners", [])
+    return partners
+
 def get_practice_categories() -> List[str]:
     practices = get_practices()
     categories = []

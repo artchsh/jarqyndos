@@ -14,7 +14,7 @@ except Exception as e:
 
 # Define conversation states
 (MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU, 
- PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE) = range(8)
+ PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE, PARTNERS_MENU) = range(9)
 
 # Global variable to store last known practice IDs
 last_practice_ids = set()

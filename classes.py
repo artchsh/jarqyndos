@@ -47,6 +47,13 @@ class Event(TypedDict):
     date: str
     description: str
     link: str
+
+@dataclass
+class Partner(TypedDict):
+    id: int
+    name: str
+    description: str
+    link: Optional[str] = None
     
 @dataclass
 class BotInfo(TypedDict):
@@ -56,6 +63,7 @@ class BotInfo(TypedDict):
     universities: List[University]
     psychologists: List[Psychologist]
     events: List[Event]
+    partners: List[Partner]
 
 @dataclass
 class Data(TypedDict):

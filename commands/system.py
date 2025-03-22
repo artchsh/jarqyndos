@@ -6,7 +6,7 @@ from telegram.constants import ParseMode
 from telegram.error import TimedOut, NetworkError, RetryAfter, BadRequest
 
 from logger import logger
-from config import last_practice_ids, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU,PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE
+from config import last_practice_ids, MAIN_MENU, UNIVERSITY_MENU, FIND_PSYCHOLOGIST, PRACTICES_MENU,PRACTICE_CATEGORY, PRACTICE_DETAIL, CONTACTS_MENU, REPORT_ISSUE, PARTNERS_MENU
 from language import textjson
 
 
@@ -16,6 +16,7 @@ start_menu = ReplyKeyboardMarkup([
     [textjson.main_menu.psychologist],
     [textjson.main_menu.practices],
     [textjson.main_menu.contacts],
+    [textjson.main_menu.partners],
     [textjson.main_menu.report_issue]
 ], resize_keyboard=True)
 
@@ -68,6 +69,10 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from commands.contacts import handle_contacts
             context.user_data['nav_stack'].append(MAIN_MENU)
             return await handle_contacts(update, context)
+        elif text == "Наши":
+            from commands.partners import handle_partners
+            context.user_data['nav_stack'].append(MAIN_MENU)
+            return await handle_partners(update, context)
         elif text == "Сообщить":
             context.user_data['nav_stack'].append(MAIN_MENU)
             await update.message.reply_text(
@@ -141,6 +146,9 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif prev_state == CONTACTS_MENU:
             from commands.contacts import handle_contacts
             return await handle_contacts(update, context)
+        elif prev_state == PARTNERS_MENU:
+            from commands.partners import handle_partners
+            return await handle_partners(update, context)
         else:
             # Default to main menu if state is unknown
             logger.warning(f"Unknown previous state: {prev_state}, defaulting to main menu")
